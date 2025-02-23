@@ -44,7 +44,7 @@ static std::string dec2hex(const std::string dec) {
     if (value >= 655366) {
         value = 0;
     }
-    return strtool::to_hexstring(value,4);
+    return strtool::to_hexstring(value, 4);
 }
 
 
@@ -65,47 +65,48 @@ bool ClientScene::init(const std::shared_ptr<cugl::AssetManager>& assets) {
     // Initialize the scene to a locked width
     if (assets == nullptr) {
         return false;
-    } else if (!Scene2::initWithHint(Size(0,SCENE_HEIGHT))) {
+    }
+    else if (!Scene2::initWithHint(Size(0, SCENE_HEIGHT))) {
         return false;
     }
-    
+
     // Start up the input handler
     _assets = assets;
-    
+
     Size dimen = getSize();
     // Acquire the scene built by the asset loader and resize it the scene
     std::shared_ptr<scene2::SceneNode> scene = _assets->get<scene2::SceneNode>("client");
     scene->setContentSize(dimen);
     scene->doLayout(); // Repositions the HUD
-    
+
     _startgame = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("client.center.start"));
     _backout = std::dynamic_pointer_cast<scene2::Button>(_assets->get<scene2::SceneNode>("client.back"));
     _gameid = std::dynamic_pointer_cast<scene2::TextField>(_assets->get<scene2::SceneNode>("client.center.game.field.text"));
     _player = std::dynamic_pointer_cast<scene2::Label>(_assets->get<scene2::SceneNode>("client.center.players.field.text"));
     _status = Status::IDLE;
-    
+
     _backout->addListener([this](const std::string& name, bool down) {
         if (down) {
             disconnect();
             _status = Status::ABORT;
         }
-    });
+        });
 
-    _startgame->addListener([=,this](const std::string& name, bool down) {
+    _startgame->addListener([=, this](const std::string& name, bool down) {
         if (down) {
             // This will call the _gameid listener
             _gameid->releaseFocus();
         }
-    });
-    
+        });
+
     _gameid->addExitListener([this](const std::string& name, const std::string& value) {
         connect(value);
-    });
+        });
 
     // Create the server configuration
     auto json = _assets->get<JsonValue>("server");
     _config.set(json);
-    
+
     addChild(scene);
     setActive(false);
     return true;
@@ -142,7 +143,8 @@ void ClientScene::setActive(bool value) {
             _player->setText("1");
             configureStartButton();
             // Don't reset the room id
-        } else {
+        }
+        else {
             _gameid->deactivate();
             _startgame->deactivate();
             _backout->deactivate();
@@ -203,8 +205,7 @@ void ClientScene::update(float timestep) {
  */
 bool ClientScene::connect(const std::string room) {
     _status = Status::START;
-
-    _config.uuidSeed = room;
+    _config.uuidSeed = dec2hex(room);
     _network = NetcodeConnection::alloc(_config);
     _network->open();
 
@@ -227,7 +228,7 @@ bool ClientScene::connect(const std::string room) {
  * @param data      The data received
  */
 void ClientScene::processData(const std::string source,
-                              const std::vector<std::byte>& data) {
+    const std::vector<std::byte>& data) {
     if (data.size() > 0) {
         _status = Status::START;
     }
@@ -245,31 +246,31 @@ void ClientScene::processData(const std::string source,
 bool ClientScene::checkConnection() {
 
     switch (_network->getState()) {
-        case NetcodeConnection::State::NEGOTIATING:
-            _status = Status::JOIN;
-            break;
+    case NetcodeConnection::State::NEGOTIATING:
+        _status = Status::JOIN;
+        break;
 
-        case NetcodeConnection::State::CONNECTED:
-            if (_status != Status::START) {
-                _status = Status::WAIT;
-            }
-            break;
-
-        case NetcodeConnection::State::DENIED:
-        case NetcodeConnection::State::MISMATCHED:
-        case NetcodeConnection::State::INVALID:
-        case NetcodeConnection::State::FAILED:
-            _network->close();
+    case NetcodeConnection::State::CONNECTED:
+        if (_status != Status::START) {
             _status = Status::WAIT;
-            break;
+        }
+        break;
 
-        case NetcodeConnection::State::DISCONNECTED:
-            _network->close();
-            _status = Status::WAIT;
-            return false;
+    case NetcodeConnection::State::DENIED:
+    case NetcodeConnection::State::MISMATCHED:
+    case NetcodeConnection::State::INVALID:
+    case NetcodeConnection::State::FAILED:
+        _network->close();
+        _status = Status::WAIT;
+        break;
 
-        default:
-            break;
+    case NetcodeConnection::State::DISCONNECTED:
+        _network->close();
+        _status = Status::WAIT;
+        return false;
+
+    default:
+        break;
     }
 
     return true;
@@ -289,14 +290,14 @@ void ClientScene::configureStartButton() {
     }
 
     switch (_status) {
-        case IDLE:
-            updateText(_startgame, "Start Game");
-            break;
-        case JOIN:
-            updateText(_startgame, "Connecting");
-            break;
-        case WAIT:
-            updateText(_startgame, "Waiting");
-            break;
+    case IDLE:
+        updateText(_startgame, "Start Game");
+        break;
+    case JOIN:
+        updateText(_startgame, "Connecting");
+        break;
+    case WAIT:
+        updateText(_startgame, "Waiting");
+        break;
     }
 }
